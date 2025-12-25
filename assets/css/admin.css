@@ -1,0 +1,138 @@
+/* Admin styles for OdoTech */
+.wrap h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+.wrap .button-primary {
+  background-color: #0073aa;
+  border-color: #006ba1;
+}
+.ocwc-header {
+  position: sticky;
+  top: 32px; /* below admin bar */
+  z-index: 999;
+}
+
+/* Fix font display for OdoTech menu items */
+#adminmenu .menu-icon-twc-presets .wp-menu-name,
+#adminmenu .menu-icon-twc-presets .wp-submenu-head,
+#adminmenu .menu-icon-twc-presets .wp-submenu a {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+}
+
+/* Ensure proper Vietnamese character rendering */
+.wrap,
+.form-table th,
+.form-table td,
+.widefat th,
+.widefat td {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* Slider Editor Styles */
+.twc-slider-editor .slider-items-wrapper,
+.twc-inline-slider-editor .slider-items-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.slider-item {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border: 1px solid #ddd;
+    overflow: hidden;
+    background: #f0f0f0;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.slider-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+.slider-image-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.slider-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.slider-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.slider-item:hover .slider-overlay {
+    opacity: 1;
+}
+
+.slider-overlay .button {
+    width: 80%;
+    text-align: center;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.twc-slider-save.loading {
+    position: relative;
+    padding-right: 30px;
+}
+
+.twc-slider-save.loading::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    margin-top: -6px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #666;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Inline Editor Specifics */
+.twc-inline-slider-editor {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-top: 10px;
+}
+
+.twc-inline-slider-editor h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
