@@ -39,10 +39,10 @@ require_once TWC_PLUGIN_DIR . 'includes/admin-pages/class-twc-admin-pages.php';
  */
 class OdoTechSettings {
     public function __construct() {
-        // add_action('init', [$this, 'register_cpts']);
-        // add_action('plugins_loaded', [$this, 'init_modules']);
-        // add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
-        // add_action('admin_menu', [$this, 'register_admin_menu']);
+        add_action('init', [$this, 'register_cpts']);
+        add_action('plugins_loaded', [$this, 'init_modules']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_menu', [$this, 'register_admin_menu']);
         
         // Giới hạn menu cho Editor
         add_action('admin_menu', [$this, 'limit_editor_menu'], 999);
@@ -106,115 +106,49 @@ class OdoTechSettings {
 
     // 4. Đăng ký menu admin: Admin full, Editor chỉ Preset
     public function register_admin_menu() {
+        // Callback cho từng trang
         $preset_cb     = [new TWC_Admin_Pages(), 'render_presets'];
         $security_cb   = [new TWC_Admin_Pages(), 'render_security'];
         $logs_cb       = [new TWC_Admin_Pages(), 'render_snapshot_logs'];
 
-        // ADMINISTRATOR (toàn quyền)
+        // ADMIN (đầy đủ)
         if (current_user_can('administrator')) {
-            add_menu_page(
-                __('OdoTech Settings', 'odotech-settings'),
-                __('OdoTech Settings', 'odotech-settings'),
-                'administrator',
-                'twc-presets',
-                $preset_cb,
-                'dashicons-admin-tools', 65
-            );
-            add_submenu_page('twc-presets', __('Security', 'odotech-settings'), __('Security', 'odotech-settings'), 'administrator', 'twc-security', $security_cb);
-            add_submenu_page('twc-presets', __('Nhật ký thay đổi', 'odotech-settings'), __('Nhật ký thay đổi', 'odotech-settings'), 'administrator', 'twc-snapshot-logs', $logs_cb);
-
-            // ODOTECH CUSTOM: Thêm menu Odo Settings cho admin nếu muốn
-            add_menu_page(
-                __('Odo Settings', 'odotech-settings'),
-                __('Odo Settings', 'odotech-settings'),
-                'administrator',
-                'odo-settings',
-                $preset_cb, // hoặc callback riêng nếu có: [new TWC_Admin_Pages(), 'render_odo_settings'],
-                'dashicons-smiley', 66
-            );
+            add_menu_page('OdoTech Settings', 'OdoTech Settings', 'administrator', 'twc-presets', $preset_cb, 'dashicons-admin-tools', 65);
+            add_submenu_page('twc-presets', 'Security', 'Security', 'administrator', 'twc-security', $security_cb);
+            add_submenu_page('twc-presets', 'Nhật ký thay đổi', 'Nhật ký thay đổi', 'administrator', 'twc-snapshot-logs', $logs_cb);
         }
-        // EDITOR: chỉ thấy Preset (Branding) và Odo Settings
+        // EDITOR (giới hạn)
         elseif (current_user_can('editor')) {
-            add_menu_page(
-                __('OdoTech Settings', 'odotech-settings'),
-                __('OdoTech Settings', 'odotech-settings'),
-                'editor',
-                'twc-presets',
-                $preset_cb,
-                'dashicons-admin-tools', 65
-            );
-            // ODOTECH CUSTOM: Thêm menu Odo Settings cho editor
-            add_menu_page(
-                __('Odo Settings', 'odotech-settings'),
-                __('Odo Settings', 'odotech-settings'),
-                'editor',
-                'odo-settings',
-                $preset_cb, // hoặc callback khác
-                'dashicons-smiley', 66
-            );
+            add_menu_page('OdoTech Settings', 'OdoTech Settings', 'editor', 'twc-presets', $preset_cb, 'dashicons-admin-tools', 65);
+            // KHÔNG add submenu cho editor
         }
     }
 
     // 4.1. Giới hạn menu cho Editor role
     public function limit_editor_menu() {
-        if (!current_user_can('editor') || current_user_can('administrator')) {
-            return;
+        if (!current_user_can('editor') || current_user_can('administrator')) return;
+
+        $allowed = [ 'index.php', 'edit.php', 'edit-comments.php', 'upload.php', 'twc-presets' ];
+        global $menu;
+        foreach ($menu as $k => $m) {
+            if (!in_array($m[2], $allowed)) remove_menu_page($m[2]);
         }
 
-        // Danh sách menu được phép cho Editor
-        $allowed_menus = [
-            'index.php',                    // Bảng tin (Dashboard)
-            'edit.php',                     // Bài viết (Posts)
-            'edit.php?post_type=page',      // Trang (Pages) - chỉ xem
-            'edit.php?post_type=product',   // Sản phẩm (Products - WooCommerce)
-            'edit-comments.php',            // Bình luận (Comments)
-            'upload.php',                   // Media
-            'plugins.php',                  // Plugin
-            'twc-presets',                  // OdoTech Settings
-            'odo-settings',                 // Odo Settings Plugin
-        ];
-
-        // Lấy tất cả menu global
-        global $menu, $submenu;
-
-        // Xóa các menu không được phép
-        foreach ($menu as $key => $item) {
-            $menu_slug = $item[2];
-            if (!in_array($menu_slug, $allowed_menus)) {
-                remove_menu_page($menu_slug);
-            }
-        }
-
-        // Ẩn các nút thêm mới/edit/delete trong trang Pages bằng CSS
+        // Ẩn nút/thao tác thêm/sửa/xoá Page
         add_action('admin_head', function() {
             if (isset($_GET['post_type']) && $_GET['post_type'] === 'page') {
-                echo '<style>
-                    .page-title-action, /* Nút "Thêm mới" */
-                    .row-actions .edit, 
-                    .row-actions .trash,
-                    .row-actions .delete,
-                    .tablenav .actions,
-                    .view-switch { display: none !important; }
-                </style>';
+                echo '<style>.page-title-action,.row-actions .edit, .row-actions .trash, .row-actions .delete,.tablenav .actions,.view-switch {display:none !important;}</style>';
             }
         });
 
-        // Chặn truy cập trực tiếp vào page editor
+        // Chặn truy cập editor page
         add_action('admin_init', function() {
             global $pagenow;
-            if (current_user_can('editor') && !current_user_can('administrator')) {
-                // Nếu đang cố edit page
-                if (($pagenow === 'post.php' || $pagenow === 'post-new.php') && 
-                    isset($_GET['post_type']) && $_GET['post_type'] === 'page') {
-                    wp_die(__('Bạn không có quyền chỉnh sửa trang.', 'odotech-settings'));
-                }
-                // Nếu đang cố edit page qua post_id
-                if ($pagenow === 'post.php' && isset($_GET['post'])) {
-                    $post = get_post($_GET['post']);
-                    if ($post && $post->post_type === 'page') {
-                        wp_die(__('Bạn không có quyền chỉnh sửa trang.', 'odotech-settings'));
-                    }
-                }
+            if (($pagenow === 'post.php' || $pagenow === 'post-new.php')
+                && ((isset($_GET['post_type']) && $_GET['post_type'] === 'page')
+                || (isset($_GET['post']) && get_post_type($_GET['post']) === 'page'))
+            ) {
+                wp_die('Bạn không có quyền chỉnh sửa trang.');
             }
         });
     }

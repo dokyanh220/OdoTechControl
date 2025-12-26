@@ -21,6 +21,51 @@ class TWC_Admin_UI {
         });
     }
 
+    public static function filter_plugins_for_client($all_plugins) {
+        $user = wp_get_current_user();
+        // Check for odo_client or _client
+        if (in_array('odo_client', (array)$user->roles, true) || in_array('_client', (array)$user->roles, true)) {
+            
+            // Nếu "Ẩn menu hệ thống" bị tắt (tức là cho phép hiện), thì hiển thị tất cả plugin
+            if (!get_option('twc_hide_plugins_client', true)) {
+                return $all_plugins;
+            }
+
+            $visible_plugins = get_option('_client_visible_plugins', []);
+            
+            // If list is empty, maybe show nothing?
+            if (empty($visible_plugins)) {
+                return []; 
+            }
+
+            $filtered = [];
+            foreach ($all_plugins as $path => $data) {
+                if (in_array($path, $visible_plugins)) {
+                    $filtered[$path] = $data;
+                }
+            }
+            return $filtered;
+        }
+        return $all_plugins;
+    }
+
+    public static function apply_admin_ui_controls($params = []) {
+        $branding_title  = isset($params['twc_branding_title']) ? sanitize_text_field($params['twc_branding_title']) : '';
+        $branding_logo   = isset($params['twc_branding_logo']) ? esc_url_raw($params['twc_branding_logo']) : '';
+        $branding_color  = isset($params['twc_branding_color']) ? sanitize_text_field($params['twc_branding_color']) : '#1e1e1e';
+        $favicon_url     = isset($params['twc_branding_favicon_url']) ? esc_url_raw($params['twc_branding_favicon_url']) : '';
+
+        update_option('twc_branding_title', $branding_title, false);
+        update_option('twc_branding_logo', $branding_logo, false);
+        update_option('twc_branding_color', $branding_color, false);
+        update_option('twc_branding_favicon_url', $favicon_url, false);
+
+        $hide_plugins_for_client = isset($params['hide_plugins_client']) ? (bool)$params['hide_plugins_client'] : true;
+        update_option('twc_hide_plugins_client', $hide_plugins_for_client, false);
+
+        return true;
+    }
+
     public static function render_custom_header() {
         $branding_title = get_option('twc_branding_title', 'OdoTech');
 
@@ -134,5 +179,27 @@ class TWC_Admin_UI {
     public static function render_favicon() {
         $favicon = get_option('twc_branding_favicon_url', '');
         if (!empty($favicon)) { echo '<link rel="icon" href="' . esc_url($favicon) . '" sizes="any">'; }
+    }
+
+    public static function hide_menus_for_roles() {
+        // Ẩn Tools cho tất cả user không có manage_options
+        if (!current_user_can('manage_options')) {
+            // remove_menu_page('tools.php');
+        }
+        
+        // Ẩn menu Plugins, Themes, Settings cho _client
+        $user = wp_get_current_user();
+        if (in_array('_client', (array)$user->roles, true) || in_array('odo_client', (array)$user->roles, true)) {
+            if (get_option('twc_hide_plugins_client', true)) {
+                // Check if there are visible plugins
+                $visible_plugins = get_option('_client_visible_plugins', []);
+                if (empty($visible_plugins)) {
+                    remove_menu_page('plugins.php');
+                }
+                remove_menu_page('themes.php');
+                remove_menu_page('options-general.php');
+                remove_menu_page('edit.php?post_type=blocks');
+            }
+        }
     }
 }
