@@ -8,6 +8,7 @@ trait TWC_Admin_Pages_Presets {
         $current_admin_email  = get_option('admin_email', '');
         $favicon_url          = get_option('twc_branding_favicon_url', '');
         $hide_plugins_client  = get_option('twc_hide_plugins_client', 1);
+        $current_user = wp_get_current_user();
 
         // Thông báo thành công
         if (isset($_GET['applied']) && $_GET['applied'] === 'branding') {
@@ -58,6 +59,29 @@ trait TWC_Admin_Pages_Presets {
 
         echo '<tr><td colspan="2"><hr><h3>Giao diện Website</h3></td></tr>';
 
+        // Vị trí logo
+        $logo_position = get_option('twc_website_logo_position', '');
+        if (function_exists('twc_detect_logo_position_flatsome')) {
+            $logo_position = twc_detect_logo_position_flatsome();
+        } else {
+            $logo_position = get_option('twc_website_logo_position', 'left');
+        }
+        echo '<tr><th scope="row">Vị trí logo</th><td>';
+        echo '<div style="display:flex;gap:20px;">';
+        // Trái
+        echo '<label style="display:inline-block;cursor:pointer;">';
+        echo '<input type="radio" name="twc_website_logo_position" value="left" ' . checked($logo_position, 'left', false) . '>';
+        echo 'Bên trái';
+        echo '</label>';
+        // Giữa
+        echo '<label style="display:inline-block;cursor:pointer;">';
+        echo '<input type="radio" name="twc_website_logo_position" value="center" ' . checked($logo_position, 'center', false) . '>';
+        echo 'Ở giữa';
+        echo '</label>';
+        echo '</div>';
+        echo '<p class="description">Chọn vị trí hiển thị logo header website.</p>';
+        echo '</td></tr>';
+
         // Logo website URL
         $custom_logo_id   = get_theme_mod('custom_logo');
         $logo_website_url = get_option('twc_website_logo_url', '');
@@ -76,16 +100,10 @@ trait TWC_Admin_Pages_Presets {
         } else {
             echo '<br><img id="twc_website_logo_url_preview" src="" style="' . esc_attr($preview_style . 'display:none;') . '">';
         }
-
+        echo '<br>';
+        echo '<label><input type="checkbox" name="twc_override_theme_logo" value="1"> Thay đổi logo template</label>';
         echo '<p class="description">Logo hiển thị ở header website.</p>';
         echo '</td></tr>';
-
-        // echo '<input type="url" name="twc_website_logo_url" id="twc_website_logo_url" value="' . esc_url($logo_website_url) . '" class="regular-text" placeholder="https://example.com/logo.png">';
-        // if (!empty($logo_website_url)) {
-        //     echo '<br><img src="' . esc_url($logo_website_url) . '" style="max-height:80px;margin-top:10px;border:1px solid #ddd;padding:5px;">';
-        // }
-        // echo '<p class="description">Dán URL logo từ Media Library hoặc link bên ngoài. Tự động tìm thẻ có class "header_logo" hoặc "header-logo".</p>';
-        // echo '</td></tr>';
 
         // Width logo
         $logo_width = get_option('twc_website_logo_width', '');
@@ -108,32 +126,35 @@ trait TWC_Admin_Pages_Presets {
         echo '<p class="description">Favicon nhỏ trên tab của trình duyệt (khuyến nghị 32x32px).</p>';
         echo '</td></tr>';
 
-        // Hiển thị Plugin cho Client
-        if ( ! function_exists( 'get_plugins' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        // Kiêm tra vai trò
+        if (!in_array('odo_client', (array)$current_user->roles, true)) {
+            // Hiển thị Plugin cho Client
+            if ( ! function_exists( 'get_plugins' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+            $all_plugins = get_plugins();
+            $visible_plugins = get_option('twc_client_visible_plugins', []);
+    
+            echo '<tr><th scope="row">Hiển thị Plugin cho Client</th><td>';
+            echo '<div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fff;">';
+            foreach ($all_plugins as $plugin_path => $plugin_data) {
+                $checked = in_array($plugin_path, $visible_plugins) ? 'checked' : '';
+                echo '<label style="display:block; margin-bottom: 5px;">';
+                echo '<input type="checkbox" name="twc_client_visible_plugins[]" value="' . esc_attr($plugin_path) . '" ' . $checked . '> ';
+                echo '<strong>' . esc_html($plugin_data['Name']) . '</strong>';
+                echo '</label>';
+            }
+            echo '</div>';
+            echo '<p class="description">Chọn các plugin mà tài khoản Client được phép nhìn thấy trong trang Plugins (Cần tắt tùy chọn "Ẩn menu hệ thống" bên dưới để Client truy cập được trang Plugins).</p>';
+            echo '</td></tr>';
+    
+            // Ẩn menu cho khách
+            echo '<tr><th scope="row">Hiển thị menu plugins</th><td>';
+            echo '<label><input type="checkbox" name="hide_plugins_client" value="1" ' . checked(1, $hide_plugins_client, false) . '> ';
+            echo 'Ẩn Plugins của Client</label>';
+            echo '</td></tr>';
+    
         }
-        $all_plugins = get_plugins();
-        $visible_plugins = get_option('twc_client_visible_plugins', []);
-
-        echo '<tr><th scope="row">Hiển thị Plugin cho Client</th><td>';
-        echo '<div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fff;">';
-        foreach ($all_plugins as $plugin_path => $plugin_data) {
-            $checked = in_array($plugin_path, $visible_plugins) ? 'checked' : '';
-            echo '<label style="display:block; margin-bottom: 5px;">';
-            echo '<input type="checkbox" name="twc_client_visible_plugins[]" value="' . esc_attr($plugin_path) . '" ' . $checked . '> ';
-            echo '<strong>' . esc_html($plugin_data['Name']) . '</strong>';
-            echo '</label>';
-        }
-        echo '</div>';
-        echo '<p class="description">Chọn các plugin mà tài khoản Client được phép nhìn thấy trong trang Plugins (Cần tắt tùy chọn "Ẩn menu hệ thống" bên dưới để Client truy cập được trang Plugins).</p>';
-        echo '</td></tr>';
-
-        // Ẩn menu cho khách
-        echo '<tr><th scope="row">Hiển thị menu plugins</th><td>';
-        echo '<label><input type="checkbox" name="hide_plugins_client" value="1" ' . checked(1, $hide_plugins_client, false) . '> ';
-        echo 'Ẩn Plugins của Client</label>';
-        echo '</td></tr>';
-
         echo '</tbody></table>';
         echo '<p><button type="submit" class="button button-primary">Lưu cài đặt</button></p>';
         echo '</form>';

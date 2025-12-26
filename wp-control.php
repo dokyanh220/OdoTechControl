@@ -1,28 +1,28 @@
 <?php
 /**
  * Plugin Name: OdoTech Settings
- * Description: Cấu hình nhanh toàn bộ website WordPress cho khách hàng OdoTech.
- * Version: 1.0.0
+ * Description: Cấu hình nhanh toàn bộ website WordPress cho khách hàng OdoTech. Chức năng cho QUẢN TRỊ VIÊN (administrator) và BIÊN TẬP VIÊN (editor) theo đúng quyền mặc định WordPress.
+ * Version: 2.1.0
  * Author: OdoTech Team dokyanh220
  */
 
 if (!defined('ABSPATH')) { exit; }
 
-// Phiên bản + đường dẫn
-define('TWC_VERSION', '1.0.0');           // Phiên bản plugin hiện tại
-define('TWC_PLUGIN_FILE', __FILE__);       // Đường dẫn đầy đủ tới file plugin chính
-define('TWC_PLUGIN_DIR', plugin_dir_path(__FILE__));  // Đường dẫn thư mục plugin (có dấu / cuối)
-define('TWC_PLUGIN_URL', plugin_dir_url(__FILE__));   // URL thư mục plugin (có dấu / cuối)
+// Các hằng số cơ bản
+define('TWC_VERSION', '2.1.0');
+define('TWC_PLUGIN_FILE', __FILE__);
+define('TWC_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('TWC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Chặn sửa file plugin/theme qua editor (tùy chọn)
 if (!defined('DISALLOW_FILE_EDIT')) { 
-    define('DISALLOW_FILE_EDIT', true);  // Ẩn trình soạn thảo file trong WordPress admin
+    define('DISALLOW_FILE_EDIT', true);
 }
 if (!defined('DISALLOW_FILE_MODS')) { 
-    define('DISALLOW_FILE_MODS', false); // Vẫn cho phép cài đặt/cập nhật plugin/theme
+    define('DISALLOW_FILE_MODS', false);
 }
 
-require_once TWC_PLUGIN_DIR . 'includes/roles/class-twc-roles.php';
+// Autoload các chức năng liên quan
 require_once TWC_PLUGIN_DIR . 'includes/security/function/class-twc-security.php';
 require_once TWC_PLUGIN_DIR . 'includes/snapshot&logs/function/class-twc-logger.php';
 require_once TWC_PLUGIN_DIR . 'includes/snapshot&logs/function/class-twc-snapshot.php';
@@ -34,86 +34,60 @@ require_once TWC_PLUGIN_DIR . 'includes/admin-pages/class-twc-admin-pages.php';
  * Lớp chính: OdoTechSettings
  * - Đăng ký CPT (twc_log, twc_snapshot)
  * - Khởi tạo module
- * - Tạo menu admin (capability twc_manage_branding cho KHÁCH)
- * - Handlers admin-post (đổi prefix twc_*)
+ * - Tạo menu admin (editor chỉ thấy mục thương hiệu, admin thấy full)
+ * - Giới hạn menu admin cho Editor role
  */
 class OdoTechSettings {
     public function __construct() {
-        // Hook 'init' để đăng ký Custom Post Types
-        add_action('init', [$this, 'register_cpts']);
-        // Hook 'plugins_loaded' để khởi tạo các module sau khi tất cả plugin đã load
-        add_action('plugins_loaded', [$this, 'init_modules']);
-        // Hook 'admin_enqueue_scripts' để load CSS/JS cho admin
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
-        // Hook 'admin_menu' để tạo menu trong WordPress admin
-        add_action('admin_menu', [$this, 'register_admin_menu']);
+        // add_action('init', [$this, 'register_cpts']);
+        // add_action('plugins_loaded', [$this, 'init_modules']);
+        // add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        // add_action('admin_menu', [$this, 'register_admin_menu']);
+        
+        // Giới hạn menu cho Editor
+        add_action('admin_menu', [$this, 'limit_editor_menu'], 999);
 
-        // One-click handlers - xử lý các form submit từ admin
-        add_action('admin_post_twc_apply_preset_branding', [$this, 'handle_apply_preset_branding']);  // Xử lý form cài đặt branding
-        add_action('admin_post_twc_apply_security', [$this, 'handle_apply_security']);  // Xử lý form bảo mật nâng cao
-        add_action('admin_post_twc_apply_security_basic', [$this, 'handle_apply_security_basic']);  // Xử lý form bảo mật cơ bản
-        add_action('admin_post_twc_create_plugin_snapshot', [$this, 'handle_create_plugin_snapshot']);  // Tạo snapshot cấu hình
-        add_action('admin_post_twc_restore_plugin_snapshot', [$this, 'handle_restore_plugin_snapshot']);  // Khôi phục snapshot
-        add_action('admin_post_twc_clear_logs', [$this, 'handle_clear_logs']);  // Xóa logs
+        // handlers cho các thao tác POST chính của plugin
+        add_action('admin_post_twc_apply_preset_branding', [$this, 'handle_apply_preset_branding']);
+        add_action('admin_post_twc_apply_security', [$this, 'handle_apply_security']);
+        add_action('admin_post_twc_apply_security_basic', [$this, 'handle_apply_security_basic']);
+        add_action('admin_post_twc_create_plugin_snapshot', [$this, 'handle_create_plugin_snapshot']);
+        add_action('admin_post_twc_restore_plugin_snapshot', [$this, 'handle_restore_plugin_snapshot']);
+        add_action('admin_post_twc_clear_logs', [$this, 'handle_clear_logs']);
 
-        // Add javascript cho render_presets mở Media Library
+        // Media library JS cho admin
         add_action('admin_enqueue_scripts', function($hook) {
-            // 1. Kích hoạt Media Library của WordPress (Bắt buộc để gọi wp.media)
             wp_enqueue_media();
-
-            // 2. Xác định đường dẫn file presets.js
-            // Nếu đặt ở file chính plugin:
-            $js_url = plugin_dir_url(__FILE__) . 'assets/js/presets.js';
-            
-            // Nếu đặt ở includes/admin-pages/class-twc-admin-pages.php thì dùng:
-            // $js_url = plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/presets.js';
-
-            // 3. Đăng ký script với dependency là 'jquery'
             wp_enqueue_script(
                 'twc-presets-js', 
-                $js_url, 
-                array('jquery'), // Yêu cầu WordPress nạp jQuery trước file này
-                '1.1.0', 
+                plugin_dir_url(__FILE__) . 'assets/js/presets.js',
+                array('jquery'),
+                '2.1.0',
                 true
             );
         });
     }
 
-    /**
-     * Đăng ký Custom Post Types (CPT) cho logs và snapshots
-     * - twc_log: Lưu nhật ký hoạt động của plugin
-     * - twc_snapshot: Lưu các snapshot cấu hình plugin
-     */
+    // 1. Register custom post type
     public function register_cpts() {
-        // Đăng ký CPT 'twc_log' để lưu nhật ký hoạt động
         register_post_type('twc_log', [
-            'label' => __('OdoTech Logs', 'odotech-settings'),  // Tên hiển thị
-            'public' => false,           // Không hiển thị ở frontend
-            'show_ui' => false,          // Không hiển thị UI trong admin
-            'capability_type' => 'post', // Sử dụng quyền như 'post'
-            'supports' => ['title', 'editor', 'custom-fields'],  // Các tính năng hỗ trợ
+            'label' => __('OdoTech Logs', 'odotech-settings'),
+            'public' => false,
+            'show_ui' => false,
+            'capability_type' => 'post',
+            'supports' => ['title', 'editor', 'custom-fields'],
         ]);
-        // Đăng ký CPT 'twc_snapshot' để lưu các bản snapshot cấu hình
         register_post_type('twc_snapshot', [
             'label' => __('OdoTech Snapshots', 'odotech-settings'),
-            'public' => false,           // Không hiển thị ở frontend
-            'show_ui' => false,          // Không hiển thị UI trong admin
-            'capability_type' => 'post', // Sử dụng quyền như 'post'
-            'supports' => ['title', 'editor', 'custom-fields'],  // Các tính năng hỗ trợ
+            'public' => false,
+            'show_ui' => false,
+            'capability_type' => 'post',
+            'supports' => ['title', 'editor', 'custom-fields'],
         ]);
     }
 
-    /**
-     * Khởi tạo tất cả các module của plugin
-     * - Roles: Quản lý vai trò người dùng
-     * - Security: Bảo mật website
-     * - Admin UI: Giao diện admin tùy chỉnh
-     * - Presets: Cài đặt nhanh branding
-     * - Snapshot: Sao lưu cấu hình
-     * - Logger: Ghi nhật ký hoạt động
-     */
+    // 2. Khởi động các mô-đun chức năng
     public function init_modules() {
-        TWC_Roles::init();
         TWC_Security::init();
         TWC_Admin_UI::init();
         TWC_Presets::init();
@@ -121,228 +95,272 @@ class OdoTechSettings {
         TWC_Logger::init();
     }
 
-    /**
-     * Tải CSS và JavaScript cho trang admin của plugin
-     * Chỉ load khi đang ở trang OdoTech Settings
-     */
+    // 3. Tải các css/js cho admin menu của plugin
     public function enqueue_admin_assets($hook) {
-        // Chỉ load assets khi đang ở trang OdoTech Settings (hook chứa 'twc')
         if (strpos($hook, 'twc') !== false) {
-            // Load WordPress Media Library - cần cho chức năng upload logo/favicon
             wp_enqueue_media();
-            
-            // Load file CSS tùy chỉnh cho trang admin
             wp_enqueue_style('twc-admin', TWC_PLUGIN_URL . 'assets/css/admin.css', [], TWC_VERSION);
-            // Load file JavaScript cho trang admin, phụ thuộc jQuery
             wp_enqueue_script('twc-admin', TWC_PLUGIN_URL . 'assets/js/admin.js', ['jquery'], TWC_VERSION, true);
         }
     }
 
-    /**
-     * Menu:
-     * - Cha + Presets dùng capability 'twc_manage_branding' (KHÁCH thấy được)
-     * - Phần kỹ thuật dùng 'manage_options'
-     */
+    // 4. Đăng ký menu admin: Admin full, Editor chỉ Preset
     public function register_admin_menu() {
-        // Tạo menu cha trong WordPress admin sidebar
-        add_menu_page(
-            __('OdoTech Settings', 'odotech-settings'),  // Tiêu đề trang (page title)
-            __('OdoTech Settings', 'odotech-settings'),  // Tên menu (menu title)
-            'twc_manage_branding',                     // Capability cần thiết (KHÁCH được xem)
-            'twc-presets',                             // Menu slug (ID duy nhất)
-            [new TWC_Admin_Pages(), 'render_presets'], // Callback function để render nội dung
-            'dashicons-admin-tools',                   // Icon menu (dashicon)
-            65                                         // Vị trí trong menu (số càng cao càng xuống dưới)
-        );
+        $preset_cb     = [new TWC_Admin_Pages(), 'render_presets'];
+        $security_cb   = [new TWC_Admin_Pages(), 'render_security'];
+        $logs_cb       = [new TWC_Admin_Pages(), 'render_snapshot_logs'];
 
-        // Submenu: Security - KHÁCH được xem (twc_manage_branding)
-        add_submenu_page('twc-presets', __('Security', 'odotech-settings'), __('Security', 'odotech-settings'), 'twc_manage_branding', 'twc-security', [new TWC_Admin_Pages(), 'render_security']);
-        // Submenu: Snapshot & Logs - CHỈ KỸ THUẬT (manage_options)
-        add_submenu_page('twc-presets', __('Nhật ký thay đổi', 'odotech-settings'), __('Nhật ký thay đổi', 'odotech-settings'), 'manage_options', 'twc-snapshot-logs', [new TWC_Admin_Pages(), 'render_snapshot_logs']);
-    }
+        // ADMINISTRATOR (toàn quyền)
+        if (current_user_can('administrator')) {
+            add_menu_page(
+                __('OdoTech Settings', 'odotech-settings'),
+                __('OdoTech Settings', 'odotech-settings'),
+                'administrator',
+                'twc-presets',
+                $preset_cb,
+                'dashicons-admin-tools', 65
+            );
+            add_submenu_page('twc-presets', __('Security', 'odotech-settings'), __('Security', 'odotech-settings'), 'administrator', 'twc-security', $security_cb);
+            add_submenu_page('twc-presets', __('Nhật ký thay đổi', 'odotech-settings'), __('Nhật ký thay đổi', 'odotech-settings'), 'administrator', 'twc-snapshot-logs', $logs_cb);
 
-    private function check_nonce_and_caps($action, $allowed_caps = ['manage_options']) {
-        // Lấy nonce từ POST data và làm sạch
-        $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field($_POST['_wpnonce']) : '';
-        // Xác thực nonce để chống CSRF (Cross-Site Request Forgery)
-        if (!wp_verify_nonce($nonce, $action)) {
-            wp_die(__('Nonce không hợp lệ.', 'tigoweb-Settings'));  // Dừng nếu nonce không đúng
+            // ODOTECH CUSTOM: Thêm menu Odo Settings cho admin nếu muốn
+            add_menu_page(
+                __('Odo Settings', 'odotech-settings'),
+                __('Odo Settings', 'odotech-settings'),
+                'administrator',
+                'odo-settings',
+                $preset_cb, // hoặc callback riêng nếu có: [new TWC_Admin_Pages(), 'render_odo_settings'],
+                'dashicons-smiley', 66
+            );
         }
-        
-        // Kiểm tra xem user hiện tại có một trong các capabilities được phép không
-        $ok = false;
-        foreach ($allowed_caps as $cap) {
-            if (current_user_can($cap)) {  // Kiểm tra từng capability
-                $ok = true; 
-                break;  // Tìm thấy 1 cap đúng là đủ
-            }
+        // EDITOR: chỉ thấy Preset (Branding) và Odo Settings
+        elseif (current_user_can('editor')) {
+            add_menu_page(
+                __('OdoTech Settings', 'odotech-settings'),
+                __('OdoTech Settings', 'odotech-settings'),
+                'editor',
+                'twc-presets',
+                $preset_cb,
+                'dashicons-admin-tools', 65
+            );
+            // ODOTECH CUSTOM: Thêm menu Odo Settings cho editor
+            add_menu_page(
+                __('Odo Settings', 'odotech-settings'),
+                __('Odo Settings', 'odotech-settings'),
+                'editor',
+                'odo-settings',
+                $preset_cb, // hoặc callback khác
+                'dashicons-smiley', 66
+            );
         }
-        
-        // Dừng nếu user không có quyền nào phù hợp
-        if (!$ok) {
-            wp_die(__('Bạn không thểthực hiện hành động này.', 'tigoweb-Settings'));
+    }
+
+    // 4.1. Giới hạn menu cho Editor role
+    public function limit_editor_menu() {
+        if (!current_user_can('editor') || current_user_can('administrator')) {
+            return;
         }
-    }
 
-    /**
-     * Xử lý form Presets (Branding)
-     * Cho phép KHÁCH và KỸ THUẬT thay đổi:
-     * - Email admin
-     * - Title website/header
-     * - Logo header
-     * - Favicon
-     * - Màu header
-     */
-    public function handle_apply_preset_branding() {
-        // Kiểm tra nonce và quyền (cho phép cả KHÁCH và KỸ THUẬT)
-        $this->check_nonce_and_caps('twc_apply_preset_branding', ['manage_options', 'twc_manage_branding']);
-        // Áp dụng cài đặt branding từ dữ liệu POST
-        $result = TWC_Presets::apply_branding_preset($_POST);
-        // Ghi log kết quả
-        TWC_Logger::log('preset_branding', $result ? 'Applied branding preset' : 'Failed branding preset');
-        // Redirect về trang presets với thông báo
-        wp_redirect(admin_url('admin.php?page=twc-presets&applied=branding'));
-        exit;  // Dừng script sau khi redirect
-    }
-
-    /**
-     * Áp dụng Security Baseline (Advanced)
-     * CHỈ dành cho KỸ THUẬT (manage_options)
-     * Bật toàn bộ cài đặt bảo mật cơ bản
-     */
-    public function handle_apply_security() {
-        // Kiểm tra nonce và quyền (CHỈ KỸ THUẬT)
-        $this->check_nonce_and_caps('twc_apply_security', ['manage_options']);
-
-        // Áp dụng toàn bộ cài đặt bảo mật nâng cao
-        $result = TWC_Security::apply_security_baseline();
-
-        // Ghi log kết quả
-        TWC_Logger::log(
-            'security_apply',
-            $result ? 'Applied security baseline' : 'Failed security baseline'
-        );
-
-        // Redirect về trang security với thông báo
-        wp_redirect(admin_url('admin.php?page=twc-security&applied=1'));
-        exit;  // Dừng script sau khi redirect
-    }
-
-    /**
-     * Xử lý form Security BASIC
-     * Cho phép KHÁCH và KỸ THUẬT bật/tắt:
-     * - Disable XML-RPC
-     * - Hide WP Version
-     * - Block Author Enumeration
-     */
-    public function handle_apply_security_basic() {
-        // Kiểm tra nonce và quyền (cho phép cả KHÁCH và KỸ THUẬT)
-        $this->check_nonce_and_caps(
-            'twc_apply_security_basic',
-            ['twc_manage_branding', 'manage_options']
-        );
-
-        // Lấy giá trị từ POST, mặc định = 0 nếu không có
-        $params = [
-            'disable_xmlrpc'    => $_POST['disable_xmlrpc'] ?? 0,     // Tắt XML-RPC
-            'hide_wp_version'   => $_POST['hide_wp_version'] ?? 0,    // Ẩn phiên bản WP
-            'block_author_enum' => $_POST['block_author_enum'] ?? 0,  // Chặn dò tìm author
+        // Danh sách menu được phép cho Editor
+        $allowed_menus = [
+            'index.php',                    // Bảng tin (Dashboard)
+            'edit.php',                     // Bài viết (Posts)
+            'edit.php?post_type=page',      // Trang (Pages) - chỉ xem
+            'edit.php?post_type=product',   // Sản phẩm (Products - WooCommerce)
+            'edit-comments.php',            // Bình luận (Comments)
+            'upload.php',                   // Media
+            'plugins.php',                  // Plugin
+            'twc-presets',                  // OdoTech Settings
+            'odo-settings',                 // Odo Settings Plugin
         ];
 
-        // Áp dụng các cài đặt bảo mật cơ bản
-        $result = TWC_Security::apply_security_basic($params);
+        // Lấy tất cả menu global
+        global $menu, $submenu;
 
-        // Ghi log kết quả
-        TWC_Logger::log(
-            'security_basic_apply',
-            $result ? 'Applied basic security' : 'Failed basic security'
-        );
+        // Xóa các menu không được phép
+        foreach ($menu as $key => $item) {
+            $menu_slug = $item[2];
+            if (!in_array($menu_slug, $allowed_menus)) {
+                remove_menu_page($menu_slug);
+            }
+        }
 
-        // Redirect về trang security với thông báo
-        wp_redirect(admin_url('admin.php?page=twc-security&basic_applied=1'));
-        exit;  // Dừng script sau khi redirect
+        // Ẩn các nút thêm mới/edit/delete trong trang Pages bằng CSS
+        add_action('admin_head', function() {
+            if (isset($_GET['post_type']) && $_GET['post_type'] === 'page') {
+                echo '<style>
+                    .page-title-action, /* Nút "Thêm mới" */
+                    .row-actions .edit, 
+                    .row-actions .trash,
+                    .row-actions .delete,
+                    .tablenav .actions,
+                    .view-switch { display: none !important; }
+                </style>';
+            }
+        });
+
+        // Chặn truy cập trực tiếp vào page editor
+        add_action('admin_init', function() {
+            global $pagenow;
+            if (current_user_can('editor') && !current_user_can('administrator')) {
+                // Nếu đang cố edit page
+                if (($pagenow === 'post.php' || $pagenow === 'post-new.php') && 
+                    isset($_GET['post_type']) && $_GET['post_type'] === 'page') {
+                    wp_die(__('Bạn không có quyền chỉnh sửa trang.', 'odotech-settings'));
+                }
+                // Nếu đang cố edit page qua post_id
+                if ($pagenow === 'post.php' && isset($_GET['post'])) {
+                    $post = get_post($_GET['post']);
+                    if ($post && $post->post_type === 'page') {
+                        wp_die(__('Bạn không có quyền chỉnh sửa trang.', 'odotech-settings'));
+                    }
+                }
+            }
+        });
     }
 
+    /**
+     * Check quyền cho từng POST handler theo chuẩn phân quyền WP.
+     */
+    private function check_nonce_and_caps($action, $default_caps = ['manage_options']) {
+        $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field($_POST['_wpnonce']) : '';
+        if (!wp_verify_nonce($nonce, $action)) {
+            wp_die(__('Nonce không hợp lệ.', 'odotech-settings'));
+        }
 
-    // CHỈ KỸ THUẬT: Snapshot
-    // public function handle_create_plugin_snapshot() {
-    //     // Kiểm tra nonce và quyền (CHỈ KỸ THUẬT)
-    //     $this->check_nonce_and_caps('twc_create_snapshot', ['manage_options']);
-    //     // Tạo snapshot mới và lấy ID
-    //     $snapshot_id = TWC_Snapshot::create_snapshot();
-    //     // Ghi log kết quả
-    //     TWC_Logger::log('snapshot_create', $snapshot_id ? 'Snapshot created: ' . $snapshot_id : 'Snapshot failed');
-    //     // Redirect về trang snapshot-logs
-    //     wp_redirect(admin_url('admin.php?page=twc-snapshot-logs&snapshot=created'));
-    //     exit;
-    // }
+        $ok = false;
+        foreach ($default_caps as $cap) {
+            if (current_user_can($cap)) {
+                $ok = true;
+                break;
+            }
+        }
+        // Editor chỉ được phép branding
+        if (current_user_can('editor') && $action === 'twc_apply_preset_branding') {
+            $ok = true; // Chỉ branding
+        }
+        if (!$ok) {
+            wp_die(__('Bạn không có quyền thực hiện thao tác này.', 'odotech-settings'));
+        }
+    }
 
-    // CHỈ KỸ THUẬT: Restore snapshot
-    // public function handle_restore_plugin_snapshot() {
-    //     // Kiểm tra nonce và quyền (CHỈ KỸ THUẬT)
-    //     $this->check_nonce_and_caps('twc_restore_snapshot', ['manage_options']);
-    //     // Lấy ID snapshot từ POST và chuyển sang số nguyên
-    //     $snapshot_id = isset($_POST['snapshot_id']) ? intval($_POST['snapshot_id']) : 0;
-    //     // Khôi phục snapshot nếu có ID hợp lệ
-    //     $ok = $snapshot_id ? TWC_Snapshot::restore_snapshot($snapshot_id) : false;
-    //     // Ghi log kết quả
-    //     TWC_Logger::log('snapshot_restore', $ok ? 'Snapshot restored: ' . $snapshot_id : 'Snapshot restore failed');
-    //     // Redirect về trang restore với kết quả
-    //     wp_redirect(admin_url('admin.php?page=twc-restore&restored=' . ($ok ? '1' : '0')));
-    //     exit;
-    // }
-
-    // // CHỈ KỸ THUẬT: Clear logs
-    // public function handle_clear_logs() {
-    //     // Kiểm tra nonce và quyền (CHỈ KỸ THUẬT)
-    //     $this->check_nonce_and_caps('twc_clear_logs', ['manage_options']);
-    //     // Xóa tất cả logs
-    //     $ok = TWC_Logger::clear_logs();
-    //     // Redirect về trang snapshot-logs với kết quả
-    //     wp_redirect(admin_url('admin.php?page=twc-snapshot-logs&logs_cleared=' . ($ok ? '1' : '0')));
-    //     exit;
-    // }
+    // 5. Xử lý form submit & dữ liệu
+    public function handle_apply_preset_branding() {
+        $this->check_nonce_and_caps('twc_apply_preset_branding', ['manage_options', 'editor']);
+        $result = TWC_Presets::apply_branding_preset($_POST);
+        TWC_Logger::log('preset_branding', $result ? 'Applied branding preset' : 'Failed branding preset');
+        wp_redirect(admin_url('admin.php?page=twc-presets&applied=branding'));
+        exit;
+    }
+    public function handle_apply_security() {
+        $this->check_nonce_and_caps('twc_apply_security', ['manage_options']);
+        $result = TWC_Security::apply_security_baseline();
+        TWC_Logger::log('security_apply', $result ? 'Applied security baseline' : 'Failed security baseline');
+        wp_redirect(admin_url('admin.php?page=twc-security&applied=1'));
+        exit;
+    }
+    public function handle_apply_security_basic() {
+        $this->check_nonce_and_caps('twc_apply_security_basic', ['manage_options']);
+        $params = [
+            'disable_xmlrpc'    => $_POST['disable_xmlrpc'] ?? 0,
+            'hide_wp_version'   => $_POST['hide_wp_version'] ?? 0,
+            'block_author_enum' => $_POST['block_author_enum'] ?? 0,
+        ];
+        $result = TWC_Security::apply_security_basic($params);
+        TWC_Logger::log('security_basic_apply', $result ? 'Applied basic security' : 'Failed basic security');
+        wp_redirect(admin_url('admin.php?page=twc-security&basic_applied=1'));
+        exit;
+    }
+    public function handle_create_plugin_snapshot() {
+        // Chỉ ADMIN
+        $this->check_nonce_and_caps('twc_create_plugin_snapshot', ['manage_options']);
+        $result = TWC_Snapshot::create();
+        TWC_Logger::log('snapshot_create', $result ? 'Tạo snapshot thành công' : 'Tạo snapshot thất bại');
+        wp_redirect(admin_url('admin.php?page=twc-snapshot-logs&created=1'));
+        exit;
+    }
+    public function handle_restore_plugin_snapshot() {
+        // Chỉ ADMIN
+        $this->check_nonce_and_caps('twc_restore_plugin_snapshot', ['manage_options']);
+        $result = TWC_Snapshot::restore($_POST);
+        TWC_Logger::log('snapshot_restore', $result ? 'Restore snapshot' : 'Restore thất bại');
+        wp_redirect(admin_url('admin.php?page=twc-snapshot-logs&restored=1'));
+        exit;
+    }
+    public function handle_clear_logs() {
+        // Chỉ ADMIN
+        $this->check_nonce_and_caps('twc_clear_logs', ['manage_options']);
+        $result = TWC_Logger::clear();
+        TWC_Logger::log('clear_logs', $result ? 'Đã xóa logs' : 'Xóa logs thất bại');
+        wp_redirect(admin_url('admin.php?page=twc-snapshot-logs&cleared=1'));
+        exit;
+    }
 }
 
-// Khởi tạo plugin - tạo instance của class OdoTechSettings
+// Khởi tạo plugin
 new OdoTechSettings();
 
-/**
- * Kích hoạt plugin
- * - Tạo/cập nhật roles (twc_client, twc_technical)
- * - Cấp quyền cho administrator
- * - Tạo tài khoản adminTigo (user/pass: adminTigo/adminTigo123)
- * - Thiết lập cấu hình bảo mật mặc định
- */
+// Kích hoạt/Ngắt kích hoạt plugin: chỉ còn cấu hình hệ thống cơ bản
 register_activation_hook(__FILE__, function () {
-    // Tạo/cập nhật các role tùy chỉnh (twc_client, twc_technical)
-    TWC_Roles::ensure_roles();
-
-    // Cấp custom capabilities cho administrator
-    $admin_role = get_role('administrator');
-    if ($admin_role) {
-        $admin_role->add_cap('odo_client', true);   // Quyền quản lý branding
-        $admin_role->add_cap('odo_technical', true);   // Quyền quản lý security
-    }
-
-    // Thiết lập cấu hình bảo mật mặc định (chỉ khi chưa có)
+    // Cấu hình bảo mật mặc định nếu chưa có
     if (get_option('twc_security_basic') === false) {
         update_option('twc_security_basic', [
-            'disable_xmlrpc'    => true,   // Tắt XML-RPC mặc định
-            'hide_wp_version'   => true,   // Ẩn phiên bản WP mặc định
-            'block_author_enum' => true,   // Chặn dò tìm author mặc định
-        ], false);  // false = không autoload
+            'disable_xmlrpc'    => true,
+            'hide_wp_version'   => true,
+            'block_author_enum' => true,
+        ], false);
     }
-
-    // Làm mới rewrite rules để áp dụng các thay đổi permalink
     flush_rewrite_rules();
 });
 
-/**
- * Hủy kích hoạt plugin
- * Làm mới rewrite rules
- */
 register_deactivation_hook(__FILE__, function () {
-    // Làm mới rewrite rules khi tắt plugin
+    // Khôi phục lại quyền đầy đủ cho Editor khi deactivate
+    $editor_role = get_role('editor');
+    if ($editor_role) {
+        $editor_role->add_cap('edit_pages');
+        $editor_role->add_cap('edit_others_pages');
+        $editor_role->add_cap('edit_published_pages');
+        $editor_role->add_cap('publish_pages');
+        $editor_role->add_cap('delete_pages');
+        $editor_role->add_cap('delete_others_pages');
+        $editor_role->add_cap('delete_published_pages');
+    }
     flush_rewrite_rules();
 });
+
+// Logo custom trang login
+function twc_custom_login_logo() { ?>
+    <style type="text/css">
+        body.login {
+            background: #011f26;
+            margin: 0; height: 100vh;
+            display: flex; justify-content: flex-end; align-items: center;
+            overflow: hidden; position: relative;
+        }
+        #login h1 {margin-bottom: 24px;}
+        #login h1 a {
+            background-image: url('<?php echo plugin_dir_url(__FILE__) . "assets/img/logo.png"; ?>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            width: 260px; height: 120px; display: block; margin: 0 auto;
+        }
+        #wp-submit {
+            background: #f16529;
+            border: none; height: 46px; width: 100%; margin-top: 18px;
+            font-weight: 600; letter-spacing: 1px; transition: 0.25s ease;
+        }
+        #wp-submit:hover {background: #ff7a3d;}
+        #nav, #backtoblog {text-align: center; margin-top: 18px;}
+        #nav a, #backtoblog a {
+            color: #cfc894ff !important; font-size: 11px;
+        }
+        .language-switcher {display: none !important;}
+    </style>
+<?php }
+add_action('login_enqueue_scripts', 'twc_custom_login_logo');
+
+// Đổi URL khi click logo login
+function twc_custom_login_logo_url() {
+    return home_url();
+}
+add_filter('login_headerurl', 'twc_custom_login_logo_url');

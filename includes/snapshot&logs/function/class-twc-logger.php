@@ -26,7 +26,7 @@ class TWC_Logger {
             $role = !empty($user->roles) ? $user->roles[0] : 'unknown';
             $plugin_name = $get_plugin_name($plugin_path);
             
-            $msg = sprintf('Người dùng %s (%s) đã KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
+            $msg = sprintf('%s (%s) đã KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
             TWC_Logger::log('Plugin Activation', $msg, ['user' => $user->user_login, 'role' => $role]);
             TWC_Snapshot::create_snapshot("Plugin Activated: $plugin_name");
         });
@@ -37,7 +37,7 @@ class TWC_Logger {
             $role = !empty($user->roles) ? $user->roles[0] : 'unknown';
             $plugin_name = $get_plugin_name($plugin_path);
 
-            $msg = sprintf('Người dùng %s (%s) đã HỦY KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
+            $msg = sprintf('%s (%s) đã HỦY KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
             TWC_Logger::log('Plugin Deactivation', $msg, ['user' => $user->user_login, 'role' => $role]);
             TWC_Snapshot::create_snapshot("Plugin Deactivated: $plugin_name");
         });
@@ -50,7 +50,7 @@ class TWC_Logger {
             if (isset($options['type']) && $options['type'] === 'plugin') {
                 // Cài đặt mới
                 if (isset($options['action']) && $options['action'] === 'install') {
-                    $msg = sprintf('Người dùng %s (%s) đã CÀI ĐẶT một plugin mới', $user->user_login, $role);
+                    $msg = sprintf('%s (%s) đã CÀI ĐẶT một plugin mới', $user->user_login, $role);
                     TWC_Logger::log('Plugin Install', $msg, ['user' => $user->user_login, 'role' => $role]);
                     TWC_Snapshot::create_snapshot("Plugin Installed");
                 }
@@ -59,7 +59,7 @@ class TWC_Logger {
                     if (!empty($options['plugins'])) {
                         foreach ($options['plugins'] as $plugin_path) {
                             $plugin_name = $get_plugin_name($plugin_path);
-                            $msg = sprintf('Người dùng %s (%s) đã CẬP NHẬT plugin: %s', $user->user_login, $role, $plugin_name);
+                            $msg = sprintf('%s (%s) đã CẬP NHẬT plugin: %s', $user->user_login, $role, $plugin_name);
                             TWC_Logger::log('Plugin Update', $msg, ['user' => $user->user_login, 'role' => $role]);
                         }
                         TWC_Snapshot::create_snapshot("Plugins Updated");
@@ -74,7 +74,7 @@ class TWC_Logger {
                 $user = wp_get_current_user();
                 $role = !empty($user->roles) ? $user->roles[0] : 'unknown';
                 
-                $msg = sprintf('Người dùng %s (%s) đã XÓA plugin: %s', $user->user_login, $role, $plugin_path);
+                $msg = sprintf('%s (%s) đã XÓA plugin: %s', $user->user_login, $role, $plugin_path);
                 TWC_Logger::log('Plugin Delete', $msg, ['user' => $user->user_login, 'role' => $role]);
                 TWC_Snapshot::create_snapshot("Plugin Deleted: $plugin_path");
             }

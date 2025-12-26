@@ -2,7 +2,7 @@
 /**
  * Quản lý vai trò người dùng
  * - odo_client (Khách hàng): Quản lý branding, nội dung
- * - twc_technical (Kỹ thuật): Tất cả quyền như administrator
+ * - odo_technical (Kỹ thuật): Tất cả quyền như administrator
  */
 if (!defined('ABSPATH')) { exit; }
 
@@ -17,7 +17,7 @@ class TWC_Roles {
     /**
      * Tạo/cập nhật các vai trò tùy chỉnh
      * - odo_client: Khách hàng (quản lý nội dung + branding)
-     * - twc_technical: Kỹ thuật (toàn quyền như administrator)
+     * - odo_technical: Kỹ thuật (toàn quyền như administrator)
      */
     public static function ensure_roles() {
         // Khách hàng
@@ -63,7 +63,7 @@ class TWC_Roles {
         ];
 
         if (!get_role('odo_client')) {
-            add_role('odo_client', __('Client Manager', 'odotech-settings'), $client_caps);
+            add_role('odo_client', __('Odo Client', 'odotech-settings'), $client_caps);
         } else {
             $role = get_role('odo_client');
             foreach ($client_caps as $cap => $grant) {
@@ -118,11 +118,11 @@ class TWC_Roles {
         // Đảm bảo technical cũng có quyền branding riêng
         $tech_caps['twc_manage_branding'] = true;
 
-        if (!get_role('twc_technical')) {
-            add_role('twc_technical', __('Technical Manager', 'odotech-settings'), $tech_caps);
+        if (!get_role('odo_technical')) {
+            add_role('odo_technical', __('Odo Technical', 'odotech-settings'), $tech_caps);
         } else {
-            $role = get_role('twc_technical');
-            // Gán toàn bộ capabilities của administrator cho twc_technical
+            $role = get_role('odo_technical');
+            // Gán toàn bộ capabilities của administrator cho odo_technical
             foreach ($tech_caps as $cap => $grant) {
                 $role->add_cap($cap, (bool)$grant);
             }

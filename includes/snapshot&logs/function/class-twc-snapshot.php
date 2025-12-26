@@ -46,7 +46,7 @@ class TWC_Snapshot {
         ]);
 
         // Ghi log vào TWC_Logger ngay khi tạo snapshot
-        TWC_Logger::log('Snapshot', "Đã tạo snapshot bởi {$data['created_by']['username']} ({$data['created_by']['role']})");
+        // TWC_Logger::log('Snapshot', "Đã tạo snapshot bởi {$data['created_by']['username']} ({$data['created_by']['role']})");
 
         return $post_id;
     }
