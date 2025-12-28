@@ -8,9 +8,9 @@
  */
 if (!defined('ABSPATH')) { exit; }
 
-class TWC_Security {
+class odo_Security {
     public static function init() {
-        $basic = get_option('twc_security_basic', []);
+        $basic = get_option('odo_security_basic', []);
 
         // Tắt XML-RPC nếu được bật
         if (!empty($basic['disable_xmlrpc'])) {
@@ -31,7 +31,6 @@ class TWC_Security {
         // Bảo vệ REST API
         add_filter('rest_authentication_errors', [__CLASS__, 'rest_auth_errors']);
 
-        // Chặn theme options và plugin installation cho non-adminTigo123
         add_action('admin_init', [__CLASS__, 'restrict_theme_and_plugins']);
     }
 
@@ -47,7 +46,7 @@ class TWC_Security {
 
         return new WP_Error(
             'rest_forbidden',
-            __('REST API đã được bảo vệ.', 'tigoweb-control'),
+            __('REST API đã được bảo vệ.', 'odotech-control'),
             ['status' => 401]
         );
     }
@@ -61,7 +60,7 @@ class TWC_Security {
     }
 
     public static function apply_security_baseline() {
-        update_option('twc_security_basic', [
+        update_option('odo_security_basic', [
             'disable_xmlrpc'    => true,
             'hide_wp_version'   => true,
             'block_author_enum' => true,
@@ -77,7 +76,7 @@ class TWC_Security {
             'block_author_enum' => !empty($params['block_author_enum']),
         ];
 
-        update_option('twc_security_basic', $config, false);
+        update_option('odo_security_basic', $config, false);
         return true;
     }
 
@@ -85,8 +84,8 @@ class TWC_Security {
     public static function restrict_theme_and_plugins() {
         $current_user = wp_get_current_user();
         
-        // Kiểm tra role: admin và twc_technical được phép
-        $allowed_roles = ['administrator', 'twc_technical'];
+        // Kiểm tra role: admin và odo_technical được phép
+        $allowed_roles = ['administrator', 'odo_technical'];
         $user_roles = (array) $current_user->roles;
         $has_permission = !empty(array_intersect($user_roles, $allowed_roles));
         
@@ -97,23 +96,23 @@ class TWC_Security {
 
         // Chặn UX Builder
         if (isset($_GET['page']) && $_GET['page'] === 'ux_builder') {
-            wp_die(__('Bạn không thể truy cập UX Builder. Liên hệ Administrator và Technical để hỗ trợ', 'tigoweb-control'));
+            wp_die(__('Bạn không thể truy cập UX Builder. Liên hệ Administrator và Technical để hỗ trợ', 'odotech-control'));
         }
 
         // Chặn theme customizer/options
         global $pagenow;
         if ($pagenow === 'customize.php' || $pagenow === 'themes.php') {
-            wp_die(__('Bạn không thể truy cập theme options. Liên hệ Administrator và Technical để hỗ trợ', 'tigoweb-control'));
+            wp_die(__('Bạn không thể truy cập theme options. Liên hệ Administrator và Technical để hỗ trợ', 'odotech-control'));
         }
 
         // Chặn plugin installation/upload
         if ($pagenow === 'plugin-install.php' || ($pagenow === 'plugins.php' && isset($_GET['action']) && $_GET['action'] === 'upload')) {
-            wp_die(__('Bạn không thể tải plugin. Liên hệ Administrator và Technical để hỗ trợ', 'tigoweb-control'));
+            wp_die(__('Bạn không thể tải plugin. Liên hệ Administrator và Technical để hỗ trợ', 'odotech-control'));
         }
 
         // Chặn plugin upload action
         if (isset($_FILES['pluginzip'])) {
-            wp_die(__('Bạn không thể tải plugin. Liên hệ Administrator và Technical để hỗ trợ.', 'tigoweb-control'));
+            wp_die(__('Bạn không thể tải plugin. Liên hệ Administrator và Technical để hỗ trợ.', 'odotech-control'));
         }
     }
 }

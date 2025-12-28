@@ -39,17 +39,17 @@ jQuery(document).ready(function($) {
 
     // Gắn cho Logo website
     attachMediaPicker(
-        "twc_pick_logo",
-        "twc_website_logo_url",
-        "twc_website_logo_url_preview",
+        "odo_pick_logo",
+        "odo_website_logo_url",
+        "odo_website_logo_url_preview",
         { title: "Chọn logo", buttonText: "Dùng logo này" }
     );
 
     // Gắn cho Favicon
     attachMediaPicker(
-        "twc_pick_favicon",
-        "twc_branding_favicon",
-        "twc_branding_favicon_preview",
+        "odo_pick_favicon",
+        "odo_branding_favicon",
+        "odo_branding_favicon_preview",
         { title: "Chọn favicon", buttonText: "Dùng favicon này" }
     );
 });

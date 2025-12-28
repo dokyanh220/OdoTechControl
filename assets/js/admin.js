@@ -7,13 +7,13 @@
     // ==========================================
     var mediaUploader;
     
-    $(document).on('click', '.twc-select-image', function(e) {
+    $(document).on('click', '.odo-select-image', function(e) {
       e.preventDefault();
       var button = $(this);
       var targetId = button.data('target');
       var storeMode = button.data('store') || 'url';
       var inputField = $('#' + targetId);
-      var previewContainer = button.closest('.twc-image-editor').find('.twc-image-preview');
+      var previewContainer = button.closest('.odo-image-editor').find('.odo-image-preview');
       var urlDisplay = $('#' + targetId + '_display');
       
       // Create new media uploader
@@ -50,12 +50,12 @@
     });
     
     // Remove image
-    $(document).on('click', '.twc-remove-image', function(e) {
+    $(document).on('click', '.odo-remove-image', function(e) {
       e.preventDefault();
       var button = $(this);
       var targetId = button.data('target');
       var inputField = $('#' + targetId);
-      var previewContainer = button.closest('.twc-image-editor').find('.twc-image-preview');
+      var previewContainer = button.closest('.odo-image-editor').find('.odo-image-preview');
       var urlDisplay = $('#' + targetId + '_display');
       
       // Clear input
@@ -92,15 +92,15 @@
     // Helper: Create Slider Item HTML
     function createSliderItemHtml(attachment, fieldNamePrefix) {
         // Default prefix if not provided
-        var prefix = fieldNamePrefix || 'twc_slider'; 
+        var prefix = fieldNamePrefix || 'odo_slider'; 
         
         return `
             <div class="slider-item">
                 <div class="slider-image-wrapper">
                     <img src="${attachment.url}" alt="Slider Image" />
                     <div class="slider-overlay">
-                        <button type="button" class="button twc-slider-change-img twc-img-change" data-id="${attachment.id}">Change</button>
-                        <button type="button" class="button twc-slider-remove-img twc-img-remove">Remove</button>
+                        <button type="button" class="button odo-slider-change-img odo-img-change" data-id="${attachment.id}">Change</button>
+                        <button type="button" class="button odo-slider-remove-img odo-img-remove">Remove</button>
                     </div>
                 </div>
                 <input type="hidden" name="${prefix}[][id]" value="${attachment.id}" class="slider-img-id" />
@@ -110,11 +110,11 @@
     }
 
     // Add Single Image (Both Editors)
-    $(document).on('click', '.twc-slider-add-img, .twc-slider-add-image, .twc-add-slider-image', function(e) {
+    $(document).on('click', '.odo-slider-add-img, .odo-slider-add-image, .odo-add-slider-image', function(e) {
         e.preventDefault();
         var button = $(this);
-        var wrapper = button.closest('.twc-slider-editor, .twc-inline-slider-editor').find('.slider-items-wrapper');
-        var fieldName = button.data('field-name') || 'twc_slider';
+        var wrapper = button.closest('.odo-slider-editor, .odo-inline-slider-editor').find('.slider-items-wrapper');
+        var fieldName = button.data('field-name') || 'odo_slider';
 
         var frame = wp.media({
             title: 'Thêm ảnh vào slider',
@@ -133,11 +133,11 @@
     });
 
     // Add Multiple Images
-    $(document).on('click', '.twc-slider-add-multiple', function(e) {
+    $(document).on('click', '.odo-slider-add-multiple', function(e) {
         e.preventDefault();
         var button = $(this);
-        var wrapper = button.closest('.twc-slider-editor, .twc-inline-slider-editor').find('.slider-items-wrapper');
-        var fieldName = button.data('field-name') || 'twc_slider';
+        var wrapper = button.closest('.odo-slider-editor, .odo-inline-slider-editor').find('.slider-items-wrapper');
+        var fieldName = button.data('field-name') || 'odo_slider';
 
         var frame = wp.media({
             title: 'Thêm nhiều ảnh',
@@ -159,7 +159,7 @@
     });
 
     // Change Image (Both Editors)
-    $(document).on('click', '.twc-slider-change-img, .twc-img-change', function(e) {
+    $(document).on('click', '.odo-slider-change-img, .odo-img-change', function(e) {
         e.preventDefault();
         var button = $(this);
         var item = button.closest('.slider-item');
@@ -185,7 +185,7 @@
     });
 
     // Remove Image (Both Editors + Legacy)
-    $(document).on('click', '.twc-slider-remove-img, .twc-img-remove, .twc-remove-slider-item', function(e) {
+    $(document).on('click', '.odo-slider-remove-img, .odo-img-remove, .odo-remove-slider-item', function(e) {
         e.preventDefault();
         var button = $(this);
         var wrapper = button.closest('.slider-items-wrapper');
@@ -198,10 +198,10 @@
     });
 
     // Clear All
-    $(document).on('click', '.twc-slider-clear-all', function(e) {
+    $(document).on('click', '.odo-slider-clear-all', function(e) {
         e.preventDefault();
         if (confirm('Bạn có chắc chắn muốn xóa tất cả ảnh trong slider này không?')) {
-            var wrapper = $(this).closest('.twc-slider-editor, .twc-inline-slider-editor').find('.slider-items-wrapper');
+            var wrapper = $(this).closest('.odo-slider-editor, .odo-inline-slider-editor').find('.slider-items-wrapper');
             wrapper.find('.slider-item').fadeOut(300, function() {
                 $(this).remove();
                 // No need to reindex if empty, but good practice if we add logic later
@@ -210,10 +210,10 @@
     });
 
     // AJAX Save (Inline Editor)
-    $(document).on('click', '.twc-slider-save', function(e) {
+    $(document).on('click', '.odo-slider-save', function(e) {
         e.preventDefault();
         var button = $(this);
-        var container = button.closest('.twc-inline-slider-editor');
+        var container = button.closest('.odo-inline-slider-editor');
         var postId = button.data('post-id');
         var nonce = button.data('nonce'); // Assuming nonce is present
         
@@ -226,7 +226,7 @@
         $.ajax({
             url: ajaxurl,
             type: 'POST',
-            data: data + '&action=twc_save_slider_inline&post_id=' + postId + '&_ajax_nonce=' + nonce,
+            data: data + '&action=odo_save_slider_inline&post_id=' + postId + '&_ajax_nonce=' + nonce,
             success: function(response) {
                 button.removeClass('loading').prop('disabled', false);
                 if (response.success) {

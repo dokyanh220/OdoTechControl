@@ -5,10 +5,10 @@ require_once dirname(__DIR__) . '/presets/render-presets.php';
 require_once dirname(__DIR__) . '/security/render-security.php';
 require_once dirname(__DIR__) . '/snapshot&logs/render-snapshot.php';
 
-class TWC_Admin_Pages {
-    use TWC_Admin_Pages_Presets;
-    use TWC_Admin_Pages_Security;
-    use TWC_Admin_Pages_Snapshot;
+class odo_Admin_Pages {
+    use odo_Admin_Pages_Presets;
+    use odo_Admin_Pages_Security;
+    use odo_Admin_Pages_Snapshot;
 
     private function button($action, $label, $nonce_action, $extra_fields = []) {
         $html = '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin-right:8px;">';

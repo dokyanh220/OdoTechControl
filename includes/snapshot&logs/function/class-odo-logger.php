@@ -1,10 +1,10 @@
 <?php
 /**
- * Logger: ghi nhật ký các hành động của plugin vào CPT twc_log.
+ * Logger: ghi nhật ký các hành động của plugin vào CPT odo_log.
  */
 if (!defined('ABSPATH')) { exit; }
 
-class TWC_Logger {
+class odo_Logger {
     // INIT
     public static function init() {
         // Helper lấy tên plugin
@@ -27,8 +27,8 @@ class TWC_Logger {
             $plugin_name = $get_plugin_name($plugin_path);
             
             $msg = sprintf('%s (%s) đã KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
-            TWC_Logger::log('Plugin Activation', $msg, ['user' => $user->user_login, 'role' => $role]);
-            TWC_Snapshot::create_snapshot("Plugin Activated: $plugin_name");
+            odo_Logger::log('Plugin Activation', $msg, ['user' => $user->user_login, 'role' => $role]);
+            odo_Snapshot::create_snapshot("Plugin Activated: $plugin_name");
         });
 
         // 2. Theo dõi khi Plugin bị hủy kích hoạt
@@ -38,8 +38,8 @@ class TWC_Logger {
             $plugin_name = $get_plugin_name($plugin_path);
 
             $msg = sprintf('%s (%s) đã HỦY KÍCH HOẠT plugin: %s', $user->user_login, $role, $plugin_name);
-            TWC_Logger::log('Plugin Deactivation', $msg, ['user' => $user->user_login, 'role' => $role]);
-            TWC_Snapshot::create_snapshot("Plugin Deactivated: $plugin_name");
+            odo_Logger::log('Plugin Deactivation', $msg, ['user' => $user->user_login, 'role' => $role]);
+            odo_Snapshot::create_snapshot("Plugin Deactivated: $plugin_name");
         });
 
         // 3. Theo dõi Cài đặt / Cập nhật Plugin
@@ -51,8 +51,8 @@ class TWC_Logger {
                 // Cài đặt mới
                 if (isset($options['action']) && $options['action'] === 'install') {
                     $msg = sprintf('%s (%s) đã CÀI ĐẶT một plugin mới', $user->user_login, $role);
-                    TWC_Logger::log('Plugin Install', $msg, ['user' => $user->user_login, 'role' => $role]);
-                    TWC_Snapshot::create_snapshot("Plugin Installed");
+                    odo_Logger::log('Plugin Install', $msg, ['user' => $user->user_login, 'role' => $role]);
+                    odo_Snapshot::create_snapshot("Plugin Installed");
                 }
                 // Cập nhật
                 elseif (isset($options['action']) && $options['action'] === 'update') {
@@ -60,9 +60,9 @@ class TWC_Logger {
                         foreach ($options['plugins'] as $plugin_path) {
                             $plugin_name = $get_plugin_name($plugin_path);
                             $msg = sprintf('%s (%s) đã CẬP NHẬT plugin: %s', $user->user_login, $role, $plugin_name);
-                            TWC_Logger::log('Plugin Update', $msg, ['user' => $user->user_login, 'role' => $role]);
+                            odo_Logger::log('Plugin Update', $msg, ['user' => $user->user_login, 'role' => $role]);
                         }
-                        TWC_Snapshot::create_snapshot("Plugins Updated");
+                        odo_Snapshot::create_snapshot("Plugins Updated");
                     }
                 }
             }
@@ -75,8 +75,8 @@ class TWC_Logger {
                 $role = !empty($user->roles) ? $user->roles[0] : 'unknown';
                 
                 $msg = sprintf('%s (%s) đã XÓA plugin: %s', $user->user_login, $role, $plugin_path);
-                TWC_Logger::log('Plugin Delete', $msg, ['user' => $user->user_login, 'role' => $role]);
-                TWC_Snapshot::create_snapshot("Plugin Deleted: $plugin_path");
+                odo_Logger::log('Plugin Delete', $msg, ['user' => $user->user_login, 'role' => $role]);
+                odo_Snapshot::create_snapshot("Plugin Deleted: $plugin_path");
             }
         }, 10, 2);
     }
@@ -102,7 +102,7 @@ class TWC_Logger {
         ], JSON_UNESCAPED_UNICODE);
 
         $post_id = wp_insert_post([
-            'post_type' => 'twc_log',
+            'post_type' => 'odo_log',
             'post_title' => $title,
             'post_content' => $content,
             'post_status' => 'publish',
@@ -113,7 +113,7 @@ class TWC_Logger {
 
     public static function get_logs($limit = 50) {
         $q = new WP_Query([
-            'post_type' => 'twc_log',
+            'post_type' => 'odo_log',
             'posts_per_page' => $limit,
             'orderby' => 'date',
             'order' => 'DESC',
@@ -123,7 +123,7 @@ class TWC_Logger {
 
     public static function clear_logs() {
         $q = new WP_Query([
-            'post_type' => 'twc_log',
+            'post_type' => 'odo_log',
             'posts_per_page' => -1,
             'fields' => 'ids',
         ]);

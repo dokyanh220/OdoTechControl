@@ -1,7 +1,7 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
-trait TWC_Admin_Pages_Snapshot {
+trait odo_Admin_Pages_Snapshot {
     /**
      * Hiển thị trang Snapshot & Logs
      * Chỉ dành cho KỸ THUẬT
@@ -9,7 +9,7 @@ trait TWC_Admin_Pages_Snapshot {
      */
     public function render_snapshot_logs() {
         echo '<h2>Nhật ký hoạt động chi tiết</h2>';
-        $logs = TWC_Logger::get_logs(50);
+        $logs = odo_Logger::get_logs(50);
         if (!empty($logs)) {
             echo '<table class="widefat fixed striped">
                     <thead>
